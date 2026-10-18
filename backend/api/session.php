@@ -1,0 +1,22 @@
+<?php
+
+session_start();
+
+header('Content-Type: application/json; charset=utf-8');
+
+if (isset($_SESSION['user'])) {
+    echo json_encode([
+        'ok' => true,
+        'authenticated' => true,
+        'user' => $_SESSION['user']
+    ]);
+    exit;
+}
+
+http_response_code(401);
+
+echo json_encode([
+    'ok' => false,
+    'authenticated' => false,
+    'message' => 'No hay una sesión activa.'
+]);
