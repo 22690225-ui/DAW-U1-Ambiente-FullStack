@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 defineProps({
   servicio: {
     type: Object,
@@ -14,9 +14,11 @@ const emit = defineEmits(['seleccionar'])
     <h2>{{ servicio.nombre }}</h2>
     <p>{{ servicio.descripcion }}</p>
 
-    <span class="service-category">
-      {{ servicio.categoria }}
-    </span>
+    <div class="service-category">
+      <p><strong>Precio:</strong> ${{ servicio.precio }}</p>
+      <p><strong>Duración:</strong> {{ servicio.duracion_minutos }} minutos</p>
+      <p><strong>Estado:</strong> {{ Number(servicio.activo) === 1 ? 'Activo' : 'Inactivo' }}</p>
+    </div>
 
     <button
       type="button"

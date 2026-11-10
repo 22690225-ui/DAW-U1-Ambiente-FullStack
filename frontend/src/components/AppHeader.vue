@@ -1,9 +1,22 @@
-
 <script setup>
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { cerrarSesion } from '../services/auth'
+import { cerrarSesion, consultarSesion } from '../services/auth'
 
 const router = useRouter()
+const rol = ref('')
+
+async function cargarRol() {
+  try {
+    const sesion = await consultarSesion()
+    rol.value = sesion.user?.rol || ''
+  } catch {
+    rol.value = ''
+  }
+}
+
+onMounted(cargarRol)
+watch(() => router.currentRoute.value.fullPath, cargarRol)
 
 async function salir() {
   try {
@@ -27,11 +40,21 @@ async function salir() {
       <RouterLink to="/dashboard">Inicio</RouterLink>
       <RouterLink to="/servicios">Servicios</RouterLink>
 
-      <button
-        type="button"
-        class="logout-button"
-        @click="salir"
+      <RouterLink
+        v-if="['ADMIN_SISTEMA', 'ADMIN_SERVICIOS'].includes(rol)"
+        to="/servicios/admin"
       >
+        Administrar servicios
+      </RouterLink>
+
+      <RouterLink
+        v-if="rol === 'ADMIN_SISTEMA'"
+        to="/usuarios"
+      >
+        Usuarios
+      </RouterLink>
+
+      <button type="button" class="logout-button" @click="salir">
         Cerrar sesión
         <span aria-hidden="true">↗</span>
       </button>
@@ -50,7 +73,6 @@ async function salir() {
   border-bottom: 1px solid #e9e8f3;
   background: #fff;
 }
-
 .brand {
   display: inline-flex;
   align-items: center;
@@ -61,7 +83,6 @@ async function salir() {
   text-decoration: none;
   white-space: nowrap;
 }
-
 .brand-icon {
   display: grid;
   width: 37px;
@@ -72,13 +93,12 @@ async function salir() {
   color: #6654d9;
   font-size: 20px;
 }
-
 .navigation {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
-
 .navigation a {
   padding: 10px 13px;
   border-radius: 9px;
@@ -86,15 +106,12 @@ async function salir() {
   font-size: 14px;
   font-weight: 650;
   text-decoration: none;
-  transition: background 0.2s, color 0.2s;
 }
-
 .navigation a:hover,
 .navigation a.router-link-active {
   background: #f0edff;
   color: #5e4dce;
 }
-
 .logout-button {
   display: inline-flex;
   align-items: center;
@@ -109,17 +126,9 @@ async function salir() {
   font-size: 13px;
   font-weight: 750;
 }
-
 .logout-button:hover {
   background: #f5f3ff;
 }
-
-.logout-button:focus-visible,
-.navigation a:focus-visible {
-  outline: 3px solid #b8adff;
-  outline-offset: 3px;
-}
-
 @media (max-width: 600px) {
   .app-header {
     align-items: flex-start;
@@ -127,17 +136,13 @@ async function salir() {
     gap: 12px;
     padding: 16px 18px;
   }
-
   .navigation {
     width: 100%;
-    flex-wrap: wrap;
     gap: 5px;
   }
-
   .navigation a {
     padding: 9px;
   }
-
   .logout-button {
     margin-left: auto;
   }

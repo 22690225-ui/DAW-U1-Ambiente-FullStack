@@ -1,4 +1,3 @@
-
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import ServicesView from '../views/ServicesView.vue'
@@ -7,58 +6,64 @@ import DashboardView from '../views/DashboardView.vue'
 import { consultarSesion } from '../services/auth'
 
 const routes = [
-  {
-    path: '/',
-    name: 'home',
-    component: HomeView,
-  },
-  {
-    path: '/login',
-    name: 'login',
-    component: LoginView,
-  },
+  { path: '/', name: 'home', component: HomeView },
+  { path: '/login', name: 'login', component: LoginView },
   {
     path: '/dashboard',
     name: 'dashboard',
     component: DashboardView,
-    meta: { requiereAutenticacion: true },
+    meta: { roles: ['ADMIN_SISTEMA', 'ADMIN_SERVICIOS', 'CLIENTE'] }
   },
   {
     path: '/servicios',
     name: 'services',
     component: ServicesView,
-    meta: { requiereAutenticacion: true },
+    meta: { roles: ['ADMIN_SISTEMA', 'ADMIN_SERVICIOS', 'CLIENTE'] }
   },
+  {
+    path: '/servicios/admin',
+    name: 'admin-services',
+    component: () => import('../views/AdminServicesView.vue'),
+    meta: { roles: ['ADMIN_SISTEMA', 'ADMIN_SERVICIOS'] }
+  },
+  {
+    path: '/usuarios',
+    name: 'users',
+    component: () => import('../views/UsersView.vue'),
+    meta: { roles: ['ADMIN_SISTEMA'] }
+  }
 ]
 
 const router = createRouter({
   history: createWebHistory(),
-  routes,
+  routes
 })
 
 router.beforeEach(async (to) => {
-  let autenticado = false
+  let usuario = null
 
   try {
     const sesion = await consultarSesion()
-    autenticado = sesion.authenticated === true
+    if (sesion.authenticated) usuario = sesion.user
   } catch {
-    autenticado = false
+    usuario = null
   }
 
-  if (to.meta.requiereAutenticacion && !autenticado) {
-    return { name: 'login' }
-  }
-
-  if (to.name === 'login' && autenticado) {
-    return { name: 'dashboard' }
+  if (to.name === 'login') {
+    return usuario ? { name: 'dashboard' } : true
   }
 
   if (to.name === 'home') {
-    return autenticado
-      ? { name: 'dashboard' }
-      : { name: 'login' }
+    return usuario ? { name: 'dashboard' } : { name: 'login' }
   }
+
+  if (!usuario) return { name: 'login' }
+
+  if (to.meta.roles && !to.meta.roles.includes(usuario.rol)) {
+    return { name: 'dashboard' }
+  }
+
+  return true
 })
 
 export default router

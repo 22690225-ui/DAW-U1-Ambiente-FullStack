@@ -4,6 +4,8 @@ session_start();
 
 header('Content-Type: application/json; charset=utf-8');
 
+require_once __DIR__ . '/../config/database.php';
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode([
@@ -24,7 +26,6 @@ if (!is_array($datos)) {
     exit;
 }
 
-// Permitir cerrar la sesión desde este mismo endpoint.
 if (($datos['action'] ?? '') === 'logout') {
     $_SESSION = [];
 
@@ -54,25 +55,62 @@ if (($datos['action'] ?? '') === 'logout') {
 $username = trim($datos['username'] ?? '');
 $password = $datos['password'] ?? '';
 
-// Credenciales de demostración para la práctica.
-if ($username === 'admin' && $password === '123456') {
+if ($username === '' || $password === '') {
+    http_response_code(422);
+    echo json_encode([
+        'ok' => false,
+        'message' => 'Debes ingresar usuario y contraseña.'
+    ]);
+    exit;
+}
+
+try {
+    $pdo = conectarDB();
+
+    $consulta = $pdo->prepare(
+        'SELECT id, usuario, nombre, email, password_hash, rol, activo
+         FROM usuarios
+         WHERE usuario = :usuario
+         LIMIT 1'
+    );
+
+    $consulta->execute(['usuario' => $username]);
+    $usuario = $consulta->fetch();
+
+    if (
+        !$usuario ||
+        !password_verify($password, $usuario['password_hash']) ||
+        (int) $usuario['activo'] !== 1
+    ) {
+        http_response_code(401);
+        echo json_encode([
+            'ok' => false,
+            'message' => 'Usuario o contraseña incorrectos.'
+        ]);
+        exit;
+    }
+
     session_regenerate_id(true);
 
     $_SESSION['user'] = [
-        'username' => 'admin'
+        'id' => $usuario['id'],
+        'username' => $usuario['usuario'],
+        'nombre' => $usuario['nombre'],
+        'email' => $usuario['email'],
+        'rol' => $usuario['rol']
     ];
 
     echo json_encode([
         'ok' => true,
         'message' => 'Inicio de sesión correcto.',
         'user' => $_SESSION['user']
+    ], JSON_UNESCAPED_UNICODE);
+
+} catch (Throwable $e) {
+    http_response_code(500);
+
+    echo json_encode([
+        'ok' => false,
+        'message' => 'Error interno al iniciar sesión.'
     ]);
-    exit;
 }
-
-http_response_code(401);
-
-echo json_encode([
-    'ok' => false,
-    'message' => 'Usuario o contraseña incorrectos.'
-]);

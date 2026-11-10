@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, computed, onMounted } from 'vue'
 import ServiceCard from '../components/ServiceCard.vue'
 
@@ -22,13 +22,17 @@ function seleccionarServicio(servicio) {
 
 onMounted(async () => {
   try {
-    const respuesta = await fetch('/api/servicios.php')
+    const respuesta = await fetch('/api/servicios.php', {
+      credentials: 'same-origin'
+    })
 
-    if (!respuesta.ok) {
-      throw new Error('No se pudieron cargar los servicios')
+    const datos = await respuesta.json()
+
+    if (!respuesta.ok || !datos.ok) {
+      throw new Error(datos.message || 'No se pudieron cargar los servicios.')
     }
 
-    servicios.value = await respuesta.json()
+    servicios.value = datos.servicios
   } catch (e) {
     console.error('Error al cargar los servicios:', e)
     error.value = 'No fue posible cargar los servicios.'
@@ -76,7 +80,10 @@ onMounted(async () => {
       <h2>Información del servicio seleccionado</h2>
       <p><strong>Nombre:</strong> {{ servicioSeleccionado.nombre }}</p>
       <p><strong>Descripción:</strong> {{ servicioSeleccionado.descripcion }}</p>
-      <p><strong>Categoría:</strong> {{ servicioSeleccionado.categoria }}</p>
+      <p><strong>Precio:</strong> ${{ servicioSeleccionado.precio }}</p>
+      <p><strong>Duración:</strong> {{ servicioSeleccionado.duracion_minutos }} minutos</p>
+      <p><strong>Estado:</strong> {{ Number(servicioSeleccionado.activo) === 1 ? 'Activo' : 'Inactivo' }}</p>
+
       <button
         type="button"
         @click="servicioSeleccionado = null"
